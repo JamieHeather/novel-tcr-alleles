@@ -8,6 +8,8 @@ This repo aims to gather together published novel TCR V gene alleles as-yet not 
 * [Omer & Peres *et al*., 2022, *Genome Medicine*](https://doi.org/10.1186/s13073-021-01008-4)
 * [Heather *et al*., 2022, *Nucleic Acids Research*](https://doi.org/10.1093/nar/gkac190)
 
+(Note that the differences in naming between the alleles found in both the Heather and Omer/Peres datasets is on account of me naming the ones I discovered using ungapped sequence positions, and them using gapped.)
+
 #### Possible to do
 
 * Find/include other studies?
