@@ -12,7 +12,7 @@ import pandas as pd
 import datetime
 
 __email__ = 'jheather@mgh.harvard.edu'
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 __author__ = 'Jamie Heather'
 
 
@@ -121,8 +121,20 @@ for novel_seq in sequences:
     row_list += [number_datasets, number_donors, number_tested]
     out_dat.append(row_list)
 
+# If that all completed successfully, move any existing compilations from root folder to the archive
+out_prefix = 'novel-TCR-alleles-'
+older_versions = [x for x in os.listdir('../') if x.startswith(out_prefix) and
+                  (x.endswith('.tsv') or x.endswith('.tsv.gz'))]
+
+currently_archived = os.listdir('../archive/')
+for ov in older_versions:
+    if ov not in currently_archived:
+        os.replace('../' + ov, '../archive/' + ov)
+    else:
+        os.replace('../' + ov, '../archive/' + ov.replace('.tsv', '-name-clash.tsv'))
+
 # Then stick it all together and write it out
 out_dat = list_to_df(out_dat, out_headers, False)
-out_nam = 'novel-TCR-alleles-' + today() + '-v' + run_version + '.tsv'
+out_nam = out_prefix + today() + '-v' + run_version + '.tsv'
 
 out_dat.to_csv('../' + out_nam, sep='\t', index=False)
