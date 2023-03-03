@@ -1,0 +1,3 @@
+[submodule "genedb-releases"]
+	path = genedb-releases
+	url = https://github.com/JamieHeather/genedb-releases.git
