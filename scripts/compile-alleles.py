@@ -11,9 +11,11 @@ import collections as coll
 import pandas as pd
 import datetime
 import subprocess
+from requests import get
+from Bio.Blast import NCBIXML, NCBIWWW
 
 __email__ = 'jheather@mgh.harvard.edu'
-__version__ = '0.3.0'
+__version__ = '0.5.0'
 __author__ = 'Jamie Heather'
 
 
@@ -84,6 +86,30 @@ def flatten(list_of_lists):
     """
     return [thing for sublist in list_of_lists for thing in sublist]
 
+def blast_ncbi(seq_to_blast):
+    """
+    :param seq_to_blast: DNA sequence to BLAST for
+    :return: two lists, one of accessions of 100% human matches (in 'nt'), one of NCBI nucleotide URLs to those seqs
+    """
+    # BLAST parameters for fast/complete matching
+    blast_results = NCBIWWW.qblast("blastn", "nt", seq_to_blast,
+                                   megablast=True, expect=1e-100, word_size=len(seq_to_blast))
+    hit_accessions = []
+    for record in NCBIXML.parse(blast_results):
+        if record.alignments:
+            for align in record.alignments:
+                for hsp in align.hsps:
+                    # Only return human hits that are 100% identical (i.e. equal length identity)
+                    if hsp.identities == len(seq_to_blast) and \
+                            'HOMO' in align.title.upper() and \
+                            'SAPIENS' in align.title.upper():
+                        hit_accessions.append(align.accession)
+
+    if hit_accessions:
+        return hit_accessions, ['https://www.ncbi.nlm.nih.gov/nucleotide/' + x for x in hit_accessions]
+    else:
+        return '', ''
+
 
 # Detect data files
 data_dir = '../input-data/'
@@ -101,6 +127,7 @@ if 'run_version' not in locals():
     raise IOError("Cannot determine version number, check README formatting.")
 
 # Go through and read each in, also determining unique novel alleles by sequence
+print("\tReading in datasets...")
 uniq_seqs = coll.defaultdict(list)
 dfs = coll.defaultdict()
 dicts = coll.defaultdict()
@@ -162,21 +189,25 @@ for novel_seq in sequences:
 
 # If that all completed successfully, move any existing compilations from root folder to the archive
 out_prefix = 'novel-TCR-alleles-'
-older_versions = [x for x in os.listdir('../') if x.startswith(out_prefix) and
-                  (x.endswith('.tsv') or x.endswith('.tsv.gz'))]
+archive_dir = '../archive/'
+currently_archived = os.listdir(archive_dir)
+# older_versions = [x for x in os.listdir('../') if x.startswith(out_prefix) and
+#                   (x.endswith('.tsv') or x.endswith('.tsv.gz'))]
+#
+# for ov in older_versions:
+#     if ov not in currently_archived:
+#         os.replace('../' + ov, '../archive/' + ov)
+#     else:
+#         os.replace('../' + ov, '../archive/' + ov.replace('.tsv', '-name-clash.tsv'))
+# TODO uncomment archiving, just turned off while tweaking
 
-currently_archived = os.listdir('../archive/')
-for ov in older_versions:
-    if ov not in currently_archived:
-        os.replace('../' + ov, '../archive/' + ov)
-    else:
-        os.replace('../' + ov, '../archive/' + ov.replace('.tsv', '-name-clash.tsv'))
 
 # Then stick it all together into a table before further processing
 out_dat = list_to_df(out_dat, out_headers, False)
 
 # Need to determine whether the alleles are featured in IMGT/GENE-DB, and if so when
 # Go through the genedb-releases scrapes, and compile allele-specific release data
+print("\tChecking if alleles exist in IMGT/GENE-DB or OGRDB...")
 release_path = '../genedb-releases/releases/'
 release_dirs = [x for x in os.listdir(release_path) if os.path.isdir(release_path + x) and x.startswith('20')]
 release_dirs.sort()
@@ -201,92 +232,171 @@ for rdir in release_dirs:
                 if bits[13] != ' ':
                     partial[bits[1]] = bits[13].strip()
 
+# Also read in OGRDB affirmations
+# First check if the OGRDB file exists and read it in; if not make it
+ogrdb = coll.defaultdict(list)
+ogrdb_record_file = 'ogrdb-affirmations.tsv'
+ogrdb_headers = 'sequence_name\tungapped_sequence\tdate_recorded_here\n'
+ogrdb_len = len(ogrdb_headers.split('\t'))
+if ogrdb_record_file not in currently_archived:
+    with open(archive_dir + ogrdb_record_file, 'w') as out_file:
+        out_file.write(ogrdb_headers)
+else:
+    with open(archive_dir + ogrdb_record_file, 'r') as in_file:
+        for line in in_file:
+            if line == ogrdb_headers:
+                continue
+            else:
+                bits = line.rstrip().split('\t')
+                if len(bits) != ogrdb_len:
+                    raise IOError("Unexpected OGRDB file format on line: " + line)
+                # elif bits[0] in ogrdb:  # TODO include a similar check?
+                #     raise IOError("Duplicate identifier in OGRDB record file: " + bits[0])
+                else:
+                    ogrdb[bits[1]] = [bits[0] + "|" + bits[2]]
+
+
+# Then grab current affirmations and add to file
+ogrdb_url = "https://ogrdb.airr-community.org/download_sequences/Human_TCR/ungapped/all"
+try:
+    ogrdb_fa = [x.split('\n') for x in get(ogrdb_url, verify=False).content.decode().rstrip().split('>') if x]
+except Exception:
+    raise IOError("Unable to download OGRDB data.")
+
+with open(archive_dir + ogrdb_record_file, 'a') as out_file:
+    for entry in ogrdb_fa:
+        seq = ''.join(entry[1:]).upper()
+        if seq in ogrdb:
+            if ogrdb[seq][0].split('|')[0] != entry[0]:
+                raise IOError("OGRDB sequence found associated to different identifier: " + entry[0] + ' / ' + seq)
+            else:
+                continue
+        else:
+            ogrdb[seq] = [entry[0] + '|' + today()]
+            out_file.write('\t'.join([entry[0], seq, today()]) + '\n')
+        # TODO make this into a dict in the format dict{seq:[geneID|release]}, where release is date this sequence first seen in OGRDB
+
 # Then go back through our novel alleles, and see if any appear in a previous release
 # Simultaneously also use William's name_allele utility to generate a standardised name, using most recent IMGT release
 
 # First generate the necessary reference files
+print("\tDetermining standard IDs and checking NCBI for deposited matching sequences...")
 gapped_file = release_path + rdir + '/IMGTGENEDB-ReferenceSequences.fasta-nt-WithGaps-F+ORF+inframeP'
 for locus in ['A', 'B', 'G', 'D']:
     cmd = 'extract_refs -L TR' + locus + ' ' + gapped_file + ' "Homo sapiens"'
     subprocess.call(cmd, shell=True)
 
 # Then iterate across the dataframe
-imgt_release = []
-imgt_id = []
+genedb_release = []
+genedb_id = []
+ogrdb_release = []
+ogrdb_id = []
 std_id = []
 gapped = []
 notes = []
+ncbi_accessions = []
+ncbi_urls = []
 file_suffix = {'V': '_gapped.fasta ', 'J': '.fasta '}
 
+# TODO make following into a function/functions that can then be applied equally to
+name_key = {'genedb': 'IMGT/GENE-DB', 'ogrdb': 'OGRDB'}
 # Check whether each 'novel' allele is actually an existing covered IMGT gene
 for na in out_dat.index:
     # Check for previous appearances
     seq = out_dat.loc[na]['Ungapped-Sequence']
-    tmp_imgt_id, tmp_imgt_release, note, ids = [''] * 4
+    note = ''
 
-    # First check for exact matches ...
-    if seq in genedb:
-        ids = list(set([x.split('|')[0] for x in genedb[seq]]))
-        releases = list(set([x.split('|')[1] for x in genedb[seq]]))
-        note += 'Exact match of '
+    for source in ['genedb', 'ogrdb']:
 
-    # ... Then check whether the novel allele is a substring of any IMGT allele ...
-    elif len([x for x in genedb if seq in x]) > 0:
-        ids = list(set([x.split('|')[0] for x in flatten([genedb[x] for x in genedb if seq in x])]))
-        releases = list(set([x.split('|')[1] for x in flatten([genedb[x] for x in genedb if seq in x])]))
-        note += 'Shorter version of '
+        tmp_id, tmp_release, ids = [''] * 3
+        tmp_source_dat = vars()[source]
 
-    # ... Or whether any IMGT allele is a substring of it
-    elif len([x for x in genedb if x in seq]) > 0:
-        ids = list(set([x.split('|')[0] for x in flatten([genedb[x] for x in genedb if x in seq])]))
-        releases = list(set([x.split('|')[1] for x in flatten([genedb[x] for x in genedb if x in seq])]))
-        note += 'Longer version of '
+        # First check for exact matches ...
+        if seq in tmp_source_dat:
+            ids = list(set([x.split('|')[0] for x in tmp_source_dat[seq]]))
+            releases = list(set([x.split('|')[1] for x in tmp_source_dat[seq]]))
+            note += 'Exact match of ' + name_key[source] + ' sequence '
 
-    # Account for potential multiple matches
-    if ids:
-        ids.sort()
-        tmp_imgt_id = '|'.join(ids)
-        note += tmp_imgt_id
-        if tmp_imgt_id in partial:
-            note += ' (' + partial[tmp_imgt_id] + '). '
-        else:
-            note += '. '
+        # ... Then check whether the novel allele is a substring of any known allele ...
+        elif len([x for x in tmp_source_dat if seq in x]) > 0:
+            ids = list(set([x.split('|')[0] for x in flatten([tmp_source_dat[x] for x in tmp_source_dat if seq in x])]))
+            releases = list(set([x.split('|')[1] for x in flatten([tmp_source_dat[x] for x in tmp_source_dat if seq in x])]))
+            note += 'Shorter version of ' + name_key[source] + ' sequence '
 
-        releases.sort()
-        tmp_imgt_release = releases[0]
+        # ... Or whether any known allele is a substring of it
+        elif len([x for x in tmp_source_dat if x in seq]) > 0:
+            ids = list(set([x.split('|')[0] for x in flatten([tmp_source_dat[x] for x in tmp_source_dat if x in seq])]))
+            releases = list(set([x.split('|')[1] for x in flatten([tmp_source_dat[x] for x in tmp_source_dat if x in seq])]))
+            note += 'Longer version of ' + name_key[source] + ' sequence '
 
-    imgt_release.append(tmp_imgt_release)
-    imgt_id.append(tmp_imgt_id)
+        # Account for potential multiple matches
+        if ids:
+            ids.sort()
+            tmp_id = '|'.join(ids)
+            note += tmp_id
+            if tmp_id in partial:
+                note += ' (' + partial[tmp_id] + '). '
+            else:
+                note += '. '
+
+            releases.sort()
+            tmp_release = releases[0]
+
+        vars()[source + '_release'].append(tmp_release)
+        vars()[source + '_id'].append(tmp_id)
 
     # Then generate standardised naming (off this release)
     gene = out_dat.loc[na]['Gene']
     cmd = 'name_allele -g ' + gene + ' Homo_sapiens_' + gene[:4] + file_suffix[gene[3]] + seq
 
     naming = subprocess.check_output(cmd, shell=True, stderr=subprocess.DEVNULL).decode('UTF-8').rstrip()
+    std_nam = '-'
     if '\n' in naming:
         naming_bits = naming.split('\n')
         if len(naming_bits) in [3, 5]:
-            std_id.append(naming_bits[0].upper())
+            std_nam = naming_bits[0].upper()
             gapped.append(naming_bits[2])
             if len(naming_bits) == 5:
                 note += naming_bits[4] + '. '
         else:
             raise IOError("Unknown format")
+
     else:
         gapped.append('')
-        if naming == 'No reference genes to compare':
-            std_id.append('-')
-        else:
-            std_id.append(naming.upper())
+        if naming != 'No reference genes to compare':
+            std_nam = naming.upper()
 
+    std_id.append(std_nam)
     notes.append(note)
+    print('\t\t' + std_nam)
+
+    # Then BLAST each sequence to see if there are 100% accession matches in NCBI
+    # Try a few times
+    finished = False
+    attempt_count = 0
+    ncbi_hit, ncbi_url = '', ''
+    while not finished:
+        try:
+            ncbi_hit, ncbi_url = blast_ncbi(seq)
+            finished = True
+        except:
+            attempt_count += 1
+            if attempt_count == 5:
+                note += 'Unable to BLAST. '
+    ncbi_accessions.append(','.join(ncbi_hit))
+    ncbi_urls.append(' '.join(ncbi_url))
+    # # TODO replace in-line NCBIWWW BLAST with calling a subprocess to bulk submit in bash? Runs slow
 
 # Add those new columns back in, and write the updated table out
-out_dat.insert(1, 'IMGT-ID', imgt_id)
-out_dat.insert(1, 'IMGT-Appearance', imgt_release)
+out_dat.insert(1, 'Gapped-Sequence', gapped)
+out_dat.insert(1, 'Notes', notes)
+out_dat.insert(1, 'OGRDB-Appearance', ogrdb_release)
+out_dat.insert(1, 'OGRDB-ID', ogrdb_id)
+out_dat.insert(1, 'IMGT-Appearance', genedb_release)
+out_dat.insert(1, 'IMGT-ID', genedb_id)
 out_dat.insert(1, 'Standard-ID', std_id)
-out_dat.insert(5, 'Gapped-Sequence', gapped)
-out_dat.insert(4, 'Notes', notes)
+out_dat['NCBI-Accessions'] = ncbi_accessions
+out_dat['NCBI-URLs'] = ncbi_urls
 
 out_nam = out_prefix + '_'.join([today(), 'v' + run_version, 'GENEDB-' + release + '.tsv'])
 out_dat.to_csv('../' + out_nam, sep='\t', index=False)
