@@ -191,15 +191,16 @@ for novel_seq in sequences:
 out_prefix = 'novel-TCR-alleles-'
 archive_dir = '../archive/'
 currently_archived = os.listdir(archive_dir)
-older_versions = [x for x in os.listdir('../') if x.startswith(out_prefix) and
-                  (x.endswith('.tsv') or x.endswith('.tsv.gz'))]
+# older_versions = [x for x in os.listdir('../') if x.startswith(out_prefix) and
+#                   (x.endswith('.tsv') or x.endswith('.tsv.gz'))]
+#
+# for ov in older_versions:
+#     if ov not in currently_archived:
+#         os.replace('../' + ov, '../archive/' + ov)
+#     else:
+#         os.replace('../' + ov, '../archive/' + ov.replace('.tsv', '-name-clash.tsv'))
+# TODO uncomment archiving, just turned off while tweaking
 
-for ov in older_versions:
-    if ov not in currently_archived:
-        os.replace('../' + ov, '../archive/' + ov)
-    else:
-        os.replace('../' + ov, '../archive/' + ov.replace('.tsv', '-name-clash.tsv'))
-#TODO uncomment archiving, just turned off while tweaking
 
 # Then stick it all together into a table before further processing
 out_dat = list_to_df(out_dat, out_headers, False)
@@ -282,7 +283,7 @@ with open(archive_dir + ogrdb_record_file, 'a') as out_file:
 print("\tDetermining standard IDs and checking NCBI for deposited matching sequences...")
 gapped_file = release_path + rdir + '/IMGTGENEDB-ReferenceSequences.fasta-nt-WithGaps-F+ORF+inframeP'
 for locus in ['A', 'B', 'G', 'D']:
-    cmd = 'extract_refs -F "Homo sapiens" -L TR' + locus + ' -r ' + gapped_file
+    cmd = 'extract_refs -L TR' + locus + ' ' + gapped_file + ' "Homo sapiens"'
     subprocess.call(cmd, shell=True)
 
 # Then iterate across the dataframe
