@@ -15,7 +15,7 @@ from requests import get
 from Bio.Blast import NCBIXML, NCBIWWW
 
 __email__ = 'jheather@mgh.harvard.edu'
-__version__ = '0.5.0'
+__version__ = '0.5.1'
 __author__ = 'Jamie Heather'
 
 
@@ -191,14 +191,14 @@ for novel_seq in sequences:
 out_prefix = 'novel-TCR-alleles-'
 archive_dir = '../archive/'
 currently_archived = os.listdir(archive_dir)
-# older_versions = [x for x in os.listdir('../') if x.startswith(out_prefix) and
-#                   (x.endswith('.tsv') or x.endswith('.tsv.gz'))]
-#
-# for ov in older_versions:
-#     if ov not in currently_archived:
-#         os.replace('../' + ov, '../archive/' + ov)
-#     else:
-#         os.replace('../' + ov, '../archive/' + ov.replace('.tsv', '-name-clash.tsv'))
+older_versions = [x for x in os.listdir('../') if x.startswith(out_prefix) and
+                  (x.endswith('.tsv') or x.endswith('.tsv.gz'))]
+
+for ov in older_versions:
+    if ov not in currently_archived:
+        os.replace('../' + ov, '../archive/' + ov)
+    else:
+        os.replace('../' + ov, '../archive/' + ov.replace('.tsv', '-name-clash.tsv'))
 # TODO uncomment archiving, just turned off while tweaking
 
 
@@ -250,11 +250,8 @@ else:
                 bits = line.rstrip().split('\t')
                 if len(bits) != ogrdb_len:
                     raise IOError("Unexpected OGRDB file format on line: " + line)
-                # elif bits[0] in ogrdb:  # TODO include a similar check?
-                #     raise IOError("Duplicate identifier in OGRDB record file: " + bits[0])
                 else:
                     ogrdb[bits[1]] = [bits[0] + "|" + bits[2]]
-
 
 # Then grab current affirmations and add to file
 ogrdb_url = "https://ogrdb.airr-community.org/download_sequences/Human_TCR/ungapped/all"
@@ -274,7 +271,6 @@ with open(archive_dir + ogrdb_record_file, 'a') as out_file:
         else:
             ogrdb[seq] = [entry[0] + '|' + today()]
             out_file.write('\t'.join([entry[0], seq, today()]) + '\n')
-        # TODO make this into a dict in the format dict{seq:[geneID|release]}, where release is date this sequence first seen in OGRDB
 
 # Then go back through our novel alleles, and see if any appear in a previous release
 # Simultaneously also use William's name_allele utility to generate a standardised name, using most recent IMGT release
@@ -283,7 +279,7 @@ with open(archive_dir + ogrdb_record_file, 'a') as out_file:
 print("\tDetermining standard IDs and checking NCBI for deposited matching sequences...")
 gapped_file = release_path + rdir + '/IMGTGENEDB-ReferenceSequences.fasta-nt-WithGaps-F+ORF+inframeP'
 for locus in ['A', 'B', 'G', 'D']:
-    cmd = 'extract_refs -L TR' + locus + ' ' + gapped_file + ' "Homo sapiens"'
+    cmd = 'extract_refs -F "Homo sapiens" -L TR' + locus + ' -r ' + gapped_file
     subprocess.call(cmd, shell=True)
 
 # Then iterate across the dataframe
@@ -348,7 +344,7 @@ for na in out_dat.index:
     # Then generate standardised naming (off this release)
     gene = out_dat.loc[na]['Gene']
     cmd = 'name_allele -g ' + gene + ' Homo_sapiens_' + gene[:4] + file_suffix[gene[3]] + seq
-
+    
     naming = subprocess.check_output(cmd, shell=True, stderr=subprocess.DEVNULL).decode('UTF-8').rstrip()
     std_nam = '-'
     if '\n' in naming:
@@ -385,7 +381,7 @@ for na in out_dat.index:
                 note += 'Unable to BLAST. '
     ncbi_accessions.append(','.join(ncbi_hit))
     ncbi_urls.append(' '.join(ncbi_url))
-    # # TODO replace in-line NCBIWWW BLAST with calling a subprocess to bulk submit in bash? Runs slow
+    # TODO replace in-line NCBIWWW BLAST with calling a subprocess to bulk submit in bash? Runs slow
 
 # Add those new columns back in, and write the updated table out
 out_dat.insert(1, 'Gapped-Sequence', gapped)
