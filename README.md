@@ -1,5 +1,5 @@
-# Novel TCR alleles
-## version 0.5.1 
+k# Novel TCR alleles
+## version 0.6.1 
 ### JH @ MGH, 2023
 
 This repo aims to gather together published novel human TCR gene alleles as-yet not included in IMGT/GENE-DB, either inferred from full-variable domain spanning TCR-seq reads, observed directly in long-read genomic DNA, or from some similar technology that doesn't rely on assembling full regions from short reads. This may prove useful for TCRseq analysis applications, or for quick reference for efforts such as the [AIRR-C's Inferred Allele Review Committee](https://www.antibodysociety.org/the-airr-community/airr-subcomittees/inferred-allele-review-committee-iarc/), which aim to more rigorously update the field's germline knowledge.
@@ -13,11 +13,14 @@ Currently this table collates alleles from:
 * [Heather *et al*., 2022, *Nucleic Acids Research*](https://doi.org/10.1093/nar/gkac190)
 * [Lin *et al*., 2022, *Frontiers in Immunology*](https://doi.org/10.3389/fimmu.2022.922513)
 * [Corcoran *et al*., 2023, *Immunity*](https://doi.org/10.1016/j.immuni.2023.01.026)
+* [Mikelov *et al*., 2023, *bioRxiv*](https://www.biorxiv.org/content/10.1101/2023.10.10.561703v1)
 
 ##### Notes on input data
 
 * The differences in naming between the alleles found in both the Heather and Omer/Peres datasets is on account of me naming the ones I discovered using ungapped sequence positions, and them using gapped.
 * The Corcoran *et al.* study includes five sets of monozygotic twins, which might affect consideration of the number of donors a given allele occurs in.  
+* The Mikelov *et al.* data are described in the pre-print linked above, but actually come from the associated [VDJ.online 'Gene Library'](https://vdj.online/) resource (accessed on 2023-10-16).
+  * Note that the donor count information for this dataset is actually technically a haplotype count. 
 
 ### Prerequisites
 
@@ -40,7 +43,6 @@ The table can be generated using any combination of input files, provided they a
 * Number-Donors-Searched
   * The total number of individuals that were screened in the assay where the allele was detected (label '1' if not known)
 
-
 Running `compile-alleles.py` in the `scripts/` dir will read in and integrate all of the suitably provided input files,outputting a table where each row is a unique novel allele, with columns annotating the relevant details from the datasets in which they appear. This output file will appear in the root directory, named in the format `novel-TCR-alleles_YYYY-MM-DD_vX.X.X_GENEDB-XXXXX-X.tsv`, based on the date of running, the version of the repo (which should increment per changes to the input data or table generation code), and the [IMGT/GENE-DB release](https://www.imgt.org/download/GENE-DB/) used as a comparison. Any existing output files fitting that format in the root directory will be moved to the `archive/` directory. 
 
 The output table aims to:
@@ -54,9 +56,10 @@ The output table aims to:
   * Note that this process does not work for a small number of alleles for which there isn't a suitable reference in the IMGT release used, prompting a `No reference genes to compare` error from `receptor_utils`. This mostly seems to occur for out-of-frame pseudogenes, which gapped sequences are not available for.
   * The `receptor_utils` package also provides other useful information, such as IMGT gapped sequences and warnings when novel alleles are missing conserved residues; this information is also retained in the output table.
 * Find deposited matches and potential orthogonal validation of novel sequences.
-  * The complete gene sequence is then BLASTed against NCBI's nt database using the BioPython 'NCBIWWW' function, to 
+  * The complete gene sequence is then BLASTed against NCBI's nt database using the BioPython 'NCBIWWW' function, to check for existing deposited data that may help validate or confirm. 
   * This retains only 100% matches to human sequences.
   * Note that this process can take a long time, and thus users may wish to comment it out if they're running it themselves and don't need this data.
+  * Also note that some of the validations of these alleles by the depositing groups have been uploaded to GenBank, so some of the accessions reported relate to evidence from the same original paper.
 
 Note that apart from selection of studies, no specific QC or additional validation has been applied to the sequences in question. The summary file does however contain columns of total numbers of datasets and donors each sequence was observed in.
 
