@@ -15,7 +15,7 @@ from requests import get
 from Bio.Blast import NCBIXML, NCBIWWW
 
 __email__ = 'jheather@mgh.harvard.edu'
-__version__ = '0.5.1'
+__version__ = '0.5.2'
 __author__ = 'Jamie Heather'
 
 
@@ -363,7 +363,6 @@ for na in out_dat.index:
             std_nam = naming.upper()
 
     std_id.append(std_nam)
-    notes.append(note)
     print('\t\t' + std_nam)
 
     # Then BLAST each sequence to see if there are 100% accession matches in NCBI
@@ -382,6 +381,8 @@ for na in out_dat.index:
     ncbi_accessions.append(','.join(ncbi_hit))
     ncbi_urls.append(' '.join(ncbi_url))
     # TODO replace in-line NCBIWWW BLAST with calling a subprocess to bulk submit in bash? Runs slow
+
+    notes.append(note)
 
 # Add those new columns back in, and write the updated table out
 out_dat.insert(1, 'Gapped-Sequence', gapped)
