@@ -215,6 +215,9 @@ genedb = coll.defaultdict(list)
 partial = coll.defaultdict()
 for rdir in release_dirs:
     release = rdir.split('_')[-1]
+    # skip over releases that just contain an 'index.html' file
+    if os.listdir(release_path + rdir) == ['index.html']:
+        continue
     genedb_file = [x for x in os.listdir(release_path + rdir) if 'fasta-nt-WithoutGaps-F+ORF+allP' in x]
     if len(genedb_file) != 1:
         raise IOError('Unexpected number of file matches in release folder ' + rdir)
