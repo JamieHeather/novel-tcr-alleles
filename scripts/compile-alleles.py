@@ -15,7 +15,7 @@ from requests import get
 from Bio.Blast import NCBIXML, NCBIWWW
 
 __email__ = 'jheather@mgh.harvard.edu'
-__version__ = '0.5.2'
+__version__ = '0.6.1'
 __author__ = 'Jamie Heather'
 
 
