@@ -15,7 +15,7 @@ from requests import get
 from Bio.Blast import NCBIXML, NCBIWWW
 
 __email__ = 'jheather@mgh.harvard.edu'
-__version__ = '0.6.1'
+__version__ = '0.7.1'
 __author__ = 'Jamie Heather'
 
 
@@ -91,9 +91,14 @@ def blast_ncbi(seq_to_blast):
     :param seq_to_blast: DNA sequence to BLAST for
     :return: two lists, one of accessions of 100% human matches (in 'nt'), one of NCBI nucleotide URLs to those seqs
     """
+    if len(seq_to_blast) >= 100:
+        blast_word_size = 100
+    else:
+        blast_word_size = len(seq_to_blast)
+
     # BLAST parameters for fast/complete matching
     blast_results = NCBIWWW.qblast("blastn", "nt", seq_to_blast,
-                                   megablast=True, expect=1e-100, word_size=len(seq_to_blast))
+                                   megablast=True, expect=1e-100, word_size=blast_word_size)
     hit_accessions = []
     for record in NCBIXML.parse(blast_results):
         if record.alignments:
