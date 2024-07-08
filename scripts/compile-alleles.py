@@ -15,7 +15,7 @@ from requests import get
 from Bio.Blast import NCBIXML, NCBIWWW
 
 __email__ = 'jheather@mgh.harvard.edu'
-__version__ = '0.7.1'
+__version__ = '0.8.0'
 __author__ = 'Jamie Heather'
 
 
@@ -204,7 +204,6 @@ for ov in older_versions:
         os.replace('../' + ov, '../archive/' + ov)
     else:
         os.replace('../' + ov, '../archive/' + ov.replace('.tsv', '-name-clash.tsv'))
-# TODO uncomment archiving, just turned off while tweaking
 
 
 # Then stick it all together into a table before further processing
@@ -262,17 +261,21 @@ else:
                     ogrdb[bits[1]] = [bits[0] + "|" + bits[2]]
 
 # Then grab current affirmations and add to file
-ogrdb_url = "https://ogrdb.airr-community.org/download_sequences/Human_TCR/ungapped/all"
+ogrdb_url = "https://ogrdb.airr-community.org/api/sequence/iarc/Homo%20sapiens"
 try:
-    ogrdb_fa = [x.split('\n') for x in get(ogrdb_url, verify=False).content.decode().rstrip().split('>') if x]
+    ogrdb_raw = get(ogrdb_url).json()
+    tr_entries = [x for x in ogrdb_raw if x.startswith('TR')]
+    ogrdb_data = {}
+    for tr in tr_entries:
+        ogrdb_data[tr] = ogrdb_raw[tr]
 except Exception:
     raise IOError("Unable to download OGRDB data.")
 
 with open(archive_dir + ogrdb_record_file, 'a') as out_file:
-    for entry in ogrdb_fa:
-        seq = ''.join(entry[1:]).upper()
+    for entry in ogrdb_data:
+        seq = ogrdb_data[entry]['sequence'].upper().replace('.', '')
         if seq in ogrdb:
-            if ogrdb[seq][0].split('|')[0] != entry[0]:
+            if ogrdb[seq][0].split('|')[0] != entry:
                 raise IOError("OGRDB sequence found associated to different identifier: " + entry[0] + ' / ' + seq)
             else:
                 continue
