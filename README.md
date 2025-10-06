@@ -23,7 +23,8 @@ Currently this table collates alleles from:
 * The Mikelov *et al.* data are described in the paper linked above, but actually come from the associated [VDJ.online 'Gene Library'](https://vdj.online/) resource (accessed on 2023-10-16).
   * Note that the donor count information for this dataset is actually technically a haplotype count. 
 * The Mantena *et al.* data described in the above linked pre-print actually come from the [associated GitHub repo (accessed on 2025-10-05)](https://github.com/SreekarMantena/tcrdiversity). 
-  * Note that these data did not come with donor count numbers, therefore each allele was arbitrarily said to be found in 1 donor
+  * Note that this is using the 'common and validated' alleles, as per the pre-print (having an allele frequency of at least 0.01 in at least one of the five considered populations, which were additionally found expressed in TCRseq data).
+  * Also note that these data did not come with donor count numbers, therefore each allele was arbitrarily said to be found in 1 donor
 
 ### Prerequisites
 
