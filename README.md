@@ -1,5 +1,5 @@
 # Novel TCR alleles
-## version 0.6.2 
+## version 0.7.0 
 ### JH @ MGH, 2023
 
 This repo aims to gather together published novel human TCR gene alleles as-yet not included in IMGT/GENE-DB, either inferred from full-variable domain spanning TCR-seq reads, observed directly in long-read genomic DNA, or from some similar technology that doesn't rely on assembling full regions from short reads. This may prove useful for TCRseq analysis applications, or for quick reference for efforts such as the [AIRR-C's Inferred Allele Review Committee](https://www.antibodysociety.org/the-airr-community/airr-subcomittees/inferred-allele-review-committee-iarc/), which aim to more rigorously update the field's germline knowledge.
@@ -13,14 +13,17 @@ Currently this table collates alleles from:
 * [Heather *et al*., 2022, *Nucleic Acids Research*](https://doi.org/10.1093/nar/gkac190)
 * [Lin *et al*., 2022, *Frontiers in Immunology*](https://doi.org/10.3389/fimmu.2022.922513)
 * [Corcoran *et al*., 2023, *Immunity*](https://doi.org/10.1016/j.immuni.2023.01.026)
-* [Mikelov *et al*., 2023, *bioRxiv*](https://www.biorxiv.org/content/10.1101/2023.10.10.561703v1)
+* [Mikelov *et al*., 2024, *Genome Research*](https://doi.org/10.1101/gr.278775.123)
+* [Mantena *et al*., 2025, *bioRxiv*](https://doi.org/10.1101/2025.08.20.671277 )
 
 ##### Notes on input data
 
 * The differences in naming between the alleles found in both the Heather and Omer/Peres datasets is on account of me naming the ones I discovered using ungapped sequence positions, and them using gapped.
 * The Corcoran *et al.* study includes five sets of monozygotic twins, which might affect consideration of the number of donors a given allele occurs in.  
-* The Mikelov *et al.* data are described in the pre-print linked above, but actually come from the associated [VDJ.online 'Gene Library'](https://vdj.online/) resource (accessed on 2023-10-16).
+* The Mikelov *et al.* data are described in the paper linked above, but actually come from the associated [VDJ.online 'Gene Library'](https://vdj.online/) resource (accessed on 2023-10-16).
   * Note that the donor count information for this dataset is actually technically a haplotype count. 
+* The Mantena *et al.* data described in the above linked pre-print actually come from the [associated GitHub repo (accessed on 2025-10-05)](https://github.com/SreekarMantena/tcrdiversity). 
+  * Note that these data did not come with donor count numbers, therefore each allele was arbitrarily said to be found in 1 donor
 
 ### Prerequisites
 
@@ -63,3 +66,6 @@ The output table aims to:
 
 Note that apart from selection of studies, no specific QC or additional validation has been applied to the sequences in question. The summary file does however contain columns of total numbers of datasets and donors each sequence was observed in.
 
+#### Related citation
+
+This resource can be cited via [this 2025 *Immunoinformatics* manuscript I wrote with some AIRR-C colleagues, "*The gremlin in the works: why T cell receptor researchers need to pay more attention to germline reference sequences*"](10.1016/j.immuno.2025.100058).
