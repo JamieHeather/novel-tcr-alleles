@@ -21,6 +21,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # Make sure genedb-releases submodule is checked out
+          submodules: 'recursive'
 
       - name: Set up Python
         uses: actions/setup-python@v5
