@@ -7,6 +7,10 @@ on:
   workflow_dispatch:
     # Allows manual running from the Actions tab
 
+env:
+  # Fix Node.js 20 deprecation warning
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   run-script:
     runs-on: ubuntu-latest
@@ -42,3 +46,4 @@ jobs:
           else
             git commit -m "$(date -u '+%Y-%m-%d'): automatic update"
             git push
+          fi
