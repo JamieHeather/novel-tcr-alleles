@@ -1,5 +1,5 @@
 # Novel TCR alleles
-## version 0.7.0 
+## version 0.7.1
 ### JH @ MGH, 2023
 
 This repo aims to gather together published novel human TCR gene alleles as-yet not included in IMGT/GENE-DB, either inferred from full-variable domain spanning TCR-seq reads, observed directly in long-read genomic DNA, or from some similar technology that doesn't rely on assembling full regions from short reads. This may prove useful for TCRseq analysis applications, or for quick reference for efforts such as the [AIRR-C's Inferred Allele Review Committee](https://www.antibodysociety.org/the-airr-community/airr-subcomittees/inferred-allele-review-committee-iarc/), which aim to more rigorously update the field's germline knowledge.
@@ -66,6 +66,8 @@ The output table aims to:
   * Also note that some of the validations of these alleles by the depositing groups have been uploaded to GenBank, so some of the accessions reported relate to evidence from the same original paper.
 
 Note that apart from selection of studies, no specific QC or additional validation has been applied to the sequences in question. The summary file does however contain columns of total numbers of datasets and donors each sequence was observed in.
+
+Prior to v0.7.1, this script ran periodically on a Raspberry Pi, to allow for detection of updated IMGT alleles or NCBI nt hits. From v0.7.1 and onwards, [inspired by recent developments in the related `genedb-releases` repo](https://github.com/JamieHeather/genedb-releases/issues/1), this has been transitioned to running via Github Action.
 
 #### Related citation
 
