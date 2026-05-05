@@ -31,6 +31,7 @@ Currently this table collates alleles from:
 * `python3.10` or greater
   * `biopython`
   * `receptor_utils` (accessible in the user's PATH)
+  * `pandas`
 
 ### Compiling the data
 
