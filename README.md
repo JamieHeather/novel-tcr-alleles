@@ -33,6 +33,12 @@ Currently this table collates alleles from:
   * `receptor_utils` (accessible in the user's PATH)
   * `pandas`
 
+
+* The `genedb-releases` submodule needs to be present, so the following or equivalent will need to be run in the repo directory:
+```
+git submodule update --init --recursive
+```
+
 ### Compiling the data
 
 The table can be generated using any combination of input files, provided they are supplied in the appropriate format and location. A single tab-separated file should be placed in the `input-data/` directory for each dataset to be included. Note that the name of these files will be used for column headers, so should be sensibly named. The fields that these files must contain are laid out in the `input-data/input-template.tsv` file. The fields, which should all have a value provided, are:
